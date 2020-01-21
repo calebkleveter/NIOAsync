@@ -1,8 +1,8 @@
 import NIO
 import XCTest
-import NIOCoroutines
+import NIOAsync
 
-final class NIOCoroutinesTests: XCTestCase {
+final class NIOAsyncTests: XCTestCase {
     var elg: EventLoopGroup!
 
     override func setUp() {
