@@ -23,7 +23,7 @@ extension EventLoopFuture {
     ///
     /// - Returns: The final result of the `EventLoopFuture`.
     public func await() throws -> Value {
-        precondition(inCoroutine, "- [BUG]: `EventLoopFuture.await()` must be called in a coroutine.")
+        precondition(inCoroutine, "- [BUG]: `EventLoopFuture.await()` must be called in a coroutine or `EventLoop.async` block.")
         return try self.coroutineFuture().await()
     }
 
