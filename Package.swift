@@ -4,6 +4,9 @@ import PackageDescription
 
 let package = Package(
     name: "NIOCoroutines",
+    platforms: [
+        .macOS(.v10_13)
+    ],
     products: [
         .library(name: "NIOCoroutines", targets: ["NIOCoroutines"]),
     ],

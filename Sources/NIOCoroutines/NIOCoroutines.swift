@@ -1,3 +1,2 @@
-struct NIOCoroutines {
-    var text = "Hello, World!"
-}
+import SwiftCroutine
+import NIO
