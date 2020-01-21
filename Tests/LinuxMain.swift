@@ -1,7 +1,8 @@
 import XCTest
 
-import NIOCoroutinesTests
+import NIOAsyncTests
 
 var tests = [XCTestCaseEntry]()
-tests += NIOCoroutinesTests.allTests()
+tests += NIOAsyncTests.__allTests()
+
 XCTMain(tests)
