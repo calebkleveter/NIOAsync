@@ -11,9 +11,19 @@ extension EventLoop {
     /// - Parameter closure: The block that will be run in a coroutine.
     /// - Returns: The result from the closure, wrapped in an `EventLoopFuture`.
     public func async<Result>(_ closure: @escaping () throws -> Result) -> EventLoopFuture<Result> {
-        coroutine {
-            return try closure()
-        }.nioFuture(on: self)
+        let coroutine = Coroutine.newFromPool(dispatcher: .global)
+        let promies = self.makePromise(of: Result.self)
+
+        coroutine.start {
+            do {
+                let value = try closure()
+                promies.succeed(value)
+            } catch let error {
+                promies.fail(error)
+            }
+        }
+
+        return promies.futureResult
     }
 }
 
