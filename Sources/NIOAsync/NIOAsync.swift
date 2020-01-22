@@ -38,13 +38,11 @@ extension EventLoopFuture {
         precondition(inCoroutine, "- [BUG]: `EventLoopFuture.await()` must be called in a coroutine or `EventLoop.async` block.")
 
         let coroutine = try Coroutine.current()
-        let lock = NSLock()
+        let lock = Lock()
         var awaitResult: Result<Value, Error>?
         
         self.whenComplete { result in
-            lock.lock()
-            awaitResult = result
-            lock.unlock()
+            lock.withLockVoid { awaitResult = result }
             if coroutine.state == .suspended { coroutine.resume() }
         }
 
