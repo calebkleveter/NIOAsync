@@ -35,22 +35,33 @@ extension EventLoopFuture {
     /// - Returns: The final result of the `EventLoopFuture`.
     public func await() throws -> Value {
         precondition(inCoroutine, "- [BUG]: `EventLoopFuture.await()` must be called in a coroutine or `EventLoop.async` block.")
+
         let coroutine = try Coroutine.current()
         let lock = NSLock()
-        var awaitResult: Result<Value, Error>!
+        var awaitResult: Result<Value, Error>?
         
-        whenComplete { result in
+        self.whenComplete { result in
             lock.lock()
             awaitResult = result
             lock.unlock()
             if coroutine.state == .suspended { coroutine.resume() }
         }
-        
+
         lock.lock()
-        awaitResult == nil
-            ? coroutine.suspend(with: lock.unlock)
-            : lock.unlock()
+        if awaitResult == nil {
+            coroutine.suspend(with: lock.unlock)
+        } else {
+            lock.unlock()
+        }
         
-        return try awaitResult.get()
+        guard let value = try awaitResult?.get() else {
+            throw AwaitError.completedWithoutValue
+        }
+
+        return value
     }
+}
+
+public enum AwaitError: Error {
+    case completedWithoutValue
 }
