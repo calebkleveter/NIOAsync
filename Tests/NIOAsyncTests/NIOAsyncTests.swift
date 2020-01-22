@@ -46,6 +46,51 @@ final class NIOAsyncTests: XCTestCase {
         try XCTAssertEqual(sum.wait(), 13)
         XCTAssertEqual(list.numbers, [1, 2, 3, 4, 5, 6])
     }
+
+    func testAsyncQuick() throws {
+        let eventLoop = self.elg.next()
+        let list = NumberList()
+
+        let result = eventLoop.async {
+            for number in (1...9).map({ eventLoop.makeSucceededFuture($0) }) {
+                try list.numbers.append(number.await())
+            }
+        }
+
+        try XCTAssertNoThrow(result.wait())
+        XCTAssertEqual(list.numbers, [1, 2, 3, 4, 5, 6, 7, 8, 9])
+    }
+
+    func testBaslineMetric() throws {
+        let range = (0..<10_000).map { $0 }
+        
+        measure {
+            for number in range {
+                _ = self.instantReturn(number)
+            }
+        }
+    }
+
+    func testAsyncOverheadMetric() throws {
+        let eventLoop = self.elg.next()
+        let range = (0..<10_000).map { eventLoop.makeSucceededFuture($0) }
+
+        measure {
+            let result = eventLoop.async {
+                for number in range {
+                    _ = try self.instantReturn(number.await())
+                }
+            }
+
+            do {
+                try result.wait()
+            } catch let error {
+                XCTFail(error.localizedDescription)
+            }
+        }
+    }
+
+    func instantReturn(_ number: Int) -> Int { return number }
 }
 
 final class NumberList {

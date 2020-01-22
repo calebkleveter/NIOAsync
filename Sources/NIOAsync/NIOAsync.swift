@@ -1,5 +1,7 @@
-import SwiftCoroutine
-import NIO
+import class NIOConcurrencyHelpers.Lock
+import class NIO.EventLoopFuture
+import protocol NIO.EventLoop
+import class SwiftCoroutine.Coroutine
 
 /// Indicates whether the current scope is in a coroutine or not.
 public var inCoroutine: Bool { Coroutine.isInsideCoroutine }
@@ -34,20 +36,27 @@ extension EventLoopFuture {
     /// - Returns: The final result of the `EventLoopFuture`.
     public func await() throws -> Value {
         precondition(inCoroutine, "- [BUG]: `EventLoopFuture.await()` must be called in a coroutine or `EventLoop.async` block.")
-        return try self.coroutineFuture().await()
-    }
 
-    internal func coroutineFuture() -> CoFuture<Value> {
-        let promies = CoPromise<Value>()
-        self.whenComplete(promies.send(completion:))
-        return promies
-    }
-}
+        let coroutine = try Coroutine.current()
+        let lock = Lock()
+        var awaitResult: Result<Value, Error>?
+        
+        self.whenComplete { result in
+            lock.withLockVoid { awaitResult = result }
+            if coroutine.state == .suspended { coroutine.resume() }
+        }
 
-extension CoFuture {
-    internal func nioFuture(on eventLoop: EventLoop) -> EventLoopFuture<Output> {
-        let promise = eventLoop.makePromise(of: Output.self)
-        self.addHandler(promise.completeWith(_:))
-        return promise.futureResult
+        lock.lock()
+        if awaitResult == nil {
+            coroutine.suspend(with: lock.unlock)
+        } else {
+            lock.unlock()
+        }
+        
+        guard let value = try awaitResult?.get() else {
+            preconditionFailure("How'd you get this far and `awaitResult` still be nil? I'd suggest you open an issue on the NIOAsync repo.")
+        }
+
+        return value
     }
 }
