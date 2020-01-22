@@ -61,6 +61,6 @@ extension EventLoopFuture {
     }
 }
 
-public enum AwaitError: Error {
+public enum AwaitError: String, Error {
     case completedWithoutValue
 }
