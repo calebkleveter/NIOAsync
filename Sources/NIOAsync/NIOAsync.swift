@@ -54,13 +54,9 @@ extension EventLoopFuture {
         }
         
         guard let value = try awaitResult?.get() else {
-            throw AwaitError.completedWithoutValue
+            preconditionFailure("How'd you get this far and `awaitResult` still be nil? I'd suggest you open an issue on the NIOAsync repo.")
         }
 
         return value
     }
-}
-
-public enum AwaitError: String, Error {
-    case completedWithoutValue
 }
