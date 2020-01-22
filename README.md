@@ -1,6 +1,6 @@
 # NIOAsync
 
-**:warning: `setjmp`/`longjpm` use to implement SwiftCoroutine is generally considered to by undefined behaviour. It's probably a bad idea to use this project for anything other than experimentation. Use at your own risk.**
+**:warning: `setjmp` and `longjpm` used to implement SwiftCoroutine are generally considered to be undefined behaviour. It's probably a bad idea to use this project for anything other than experimentation. Use at your own risk.**
 
 ## :package: Getting Started
 
@@ -30,7 +30,7 @@ The second piece to the puzzel is `EventLoopFuture.await()`:
 let user = try User.query(on: database).first().await()
 ```
 
-Note that this method is different from the `wait` method provided by NIO. You should only call it inside the closure of an `async` call (or inside any other coroutine that you happen to have started). It waits for the future result and returns it, without blocking the current thread because you are in a coroutine.
+Note that this method is different from the `wait` method provided by NIO. You can only call it inside the closure of an `async` call (or inside any other coroutine that you happen to have started). It waits for the future result and returns it, without blocking the current thread because you are in a coroutine.
 
 In the end, your code might look a little like this:
 
