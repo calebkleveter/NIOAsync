@@ -1,6 +1,7 @@
-import SwiftCoroutine
-import NIO
-import Foundation.NSLock
+import class NIOConcurrencyHelpers.Lock
+import class NIO.EventLoopFuture
+import protocol NIO.EventLoop
+import class SwiftCoroutine.Coroutine
 
 /// Indicates whether the current scope is in a coroutine or not.
 public var inCoroutine: Bool { Coroutine.isInsideCoroutine }
