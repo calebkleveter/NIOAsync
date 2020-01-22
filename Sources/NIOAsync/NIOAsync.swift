@@ -1,5 +1,6 @@
 import SwiftCoroutine
 import NIO
+import Foundation.NSLock
 
 /// Indicates whether the current scope is in a coroutine or not.
 public var inCoroutine: Bool { Coroutine.isInsideCoroutine }
@@ -34,20 +35,22 @@ extension EventLoopFuture {
     /// - Returns: The final result of the `EventLoopFuture`.
     public func await() throws -> Value {
         precondition(inCoroutine, "- [BUG]: `EventLoopFuture.await()` must be called in a coroutine or `EventLoop.async` block.")
-        return try self.coroutineFuture().await()
-    }
-
-    internal func coroutineFuture() -> CoFuture<Value> {
-        let promies = CoPromise<Value>()
-        self.whenComplete(promies.send(completion:))
-        return promies
-    }
-}
-
-extension CoFuture {
-    internal func nioFuture(on eventLoop: EventLoop) -> EventLoopFuture<Output> {
-        let promise = eventLoop.makePromise(of: Output.self)
-        self.addHandler(promise.completeWith(_:))
-        return promise.futureResult
+        let coroutine = try Coroutine.current()
+        let lock = NSLock()
+        var awaitResult: Result<Value, Error>!
+        
+        whenComplete { result in
+            lock.lock()
+            awaitResult = result
+            lock.unlock()
+            if coroutine.state == .suspended { coroutine.resume() }
+        }
+        
+        lock.lock()
+        awaitResult == nil
+            ? coroutine.suspend(with: lock.unlock)
+            : lock.unlock()
+        
+        return try awaitResult.get()
     }
 }
