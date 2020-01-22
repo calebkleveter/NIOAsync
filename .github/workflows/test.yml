@@ -9,13 +9,13 @@ jobs:
       run: swift build
     - name: Run tests
       run: swift test --sanitize=thread
-  bionic:
-    container: 
-      image: swift:5.1-bionic
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v1
-    - name: Build
-      run: swift build
-    - name: Test 
-      run: swift test --sanitize=thread
+#   bionic:
+#     container: 
+#       image: swift:5.1-bionic
+#     runs-on: ubuntu-latest
+#     steps:
+#     - uses: actions/checkout@v1
+#     - name: Build
+#       run: swift build
+#     - name: Test 
+#       run: swift test --sanitize=thread
