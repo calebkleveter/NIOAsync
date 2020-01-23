@@ -13,7 +13,8 @@ extension EventLoop {
     /// - Parameter closure: The block that will be run in a coroutine.
     /// - Returns: The result from the closure, wrapped in an `EventLoopFuture`.
     public func async<Result>(_ closure: @escaping () throws -> Result) -> EventLoopFuture<Result> {
-        let coroutine = Coroutine.newFromPool(dispatcher: .global)
+        let dispatcher = Coroutine.Dispatcher(dispatcher: self.execute(_:))
+        let coroutine = Coroutine.newFromPool(dispatcher: dispatcher)
         let promies = self.makePromise(of: Result.self)
 
         coroutine.start {
