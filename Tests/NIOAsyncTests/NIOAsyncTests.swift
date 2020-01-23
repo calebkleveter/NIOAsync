@@ -61,6 +61,31 @@ final class NIOAsyncTests: XCTestCase {
         XCTAssertEqual(list.numbers, [1, 2, 3, 4, 5, 6, 7, 8, 9])
     }
 
+    func testMultipleAsync() throws {
+        let eventLoop = self.elg.next()
+        let relatedFutures = (0...9).map { _ in
+            return eventLoop.async { () throws -> () in
+                for future in (0...9).map({ _ in eventLoop.makeSucceededFuture(()) }) {
+                    try future.await()
+                }
+            }
+        }
+
+        try XCTAssertNoThrow(relatedFutures.map { try $0.wait() })
+
+
+        let unrelatedFutures = (0...9).map { _ -> EventLoopFuture<Void> in
+            let next = self.elg.next()
+            return next.async { () throws -> () in
+                for future in (0...9).map({ _ in eventLoop.makeSucceededFuture(()) }) {
+                    try future.await()
+                }
+            }
+        }
+
+        try XCTAssertNoThrow(unrelatedFutures.map { try $0.wait() })
+    }
+
     func testBaslineMetric() throws {
         let range = (0..<10_000).map { $0 }
         
@@ -84,6 +109,48 @@ final class NIOAsyncTests: XCTestCase {
 
             do {
                 try result.wait()
+            } catch let error {
+                XCTFail(error.localizedDescription)
+            }
+        }
+    }
+
+    func testAsyncMultithreadedOverheadMetric() throws {
+        let eventLoops = (0...3).map { _ in self.elg.next() }
+
+        let ranges = [
+            (0..<2_500).map { eventLoops[0].makeSucceededFuture($0) },
+            (2_500..<5_000).map { eventLoops[1].makeSucceededFuture($0) },
+            (5_000..<7_500).map { eventLoops[2].makeSucceededFuture($0) },
+            (7_500..<10_000).map { eventLoops[3].makeSucceededFuture($0) }
+        ]
+
+        measure {
+            let results = (0...3).map { index in
+                return eventLoops[index].async {
+                    for number in ranges[index] {
+                        _ = try self.instantReturn(number.await())
+                    }
+                }
+            }
+
+            do {
+                let promise = self.elg.next().makePromise(of: Void.self)
+                var count = 0
+
+                results.forEach { future in
+                    future.whenComplete { result in
+                        switch result {
+                        case .success:
+                            count += 1
+                            if count == 4 { promise.succeed(()) }
+                        case let .failure(error):
+                            promise.fail(error)
+                        }
+                    }
+                }
+
+                try promise.futureResult.wait()
             } catch let error {
                 XCTFail(error.localizedDescription)
             }
