@@ -7,6 +7,11 @@ extension NIOAsyncTests {
     // to regenerate.
     static let __allTests__NIOAsyncTests = [
         ("testAsync", testAsync),
+        ("testAsyncMultithreadedOverheadMetric", testAsyncMultithreadedOverheadMetric),
+        ("testAsyncOverheadMetric", testAsyncOverheadMetric),
+        ("testAsyncQuick", testAsyncQuick),
+        ("testBaslineMetric", testBaslineMetric),
+        ("testMultipleAsync", testMultipleAsync),
     ]
 }
 
