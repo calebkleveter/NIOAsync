@@ -2,13 +2,18 @@ name: test
 on: [push]
 jobs:
   macOS:
-    runs-on: macos-latest
+    runs-on: 
+      macos-latest
     steps:
     - uses: actions/checkout@v1
+      with:
+        xcode-version: 11.3
     - name: Build
       run: swift build
-    - name: Run tests
+    - name: Run Tests
       run: swift test --sanitize=thread
+    - name: Performance Tests
+      run: swift test -c release
 #   bionic:
 #     container: 
 #       image: swift:5.1-bionic
