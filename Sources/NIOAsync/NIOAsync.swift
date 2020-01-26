@@ -4,7 +4,7 @@ import protocol NIO.EventLoop
 import class SwiftCoroutine.Coroutine
 
 /// Indicates whether the current scope is in a coroutine or not.
-public var inCoroutine: Bool { Coroutine.isInsideCoroutine }
+@inlinable public var inCoroutine: Bool { Coroutine.isInsideCoroutine }
 
 extension EventLoop {
 
@@ -39,19 +39,29 @@ extension EventLoopFuture {
         precondition(inCoroutine, "- [BUG]: `EventLoopFuture.await()` must be called in a coroutine or `EventLoop.async` block.")
 
         let coroutine = try Coroutine.current()
-        let lock = Lock()
         var awaitResult: Result<Value, Error>?
         
-        self.whenComplete { result in
-            lock.withLockVoid { awaitResult = result }
-            if coroutine.state == .suspended { coroutine.resume() }
-        }
-
-        lock.lock()
-        if awaitResult == nil {
-            coroutine.suspend(with: lock.unlock)
+        if eventLoop.inEventLoop {
+            self.whenComplete { result in
+                awaitResult = result
+                if coroutine.state == .suspended { coroutine.resume() }
+            }
+            
+            if awaitResult == nil { coroutine.suspend() }
         } else {
-            lock.unlock()
+            let lock = Lock()
+            
+            self.whenComplete { result in
+                lock.withLockVoid { awaitResult = result }
+                if coroutine.state == .suspended { coroutine.resume() }
+            }
+            
+            lock.lock()
+            if awaitResult == nil {
+                coroutine.suspend(with: lock.unlock)
+            } else {
+                lock.unlock()
+            }
         }
         
         guard let value = try awaitResult?.get() else {
