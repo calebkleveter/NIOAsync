@@ -137,15 +137,14 @@ final class NIOAsyncTests: XCTestCase {
 
             do {
                 let promise = self.elg.next().makePromise(of: Void.self)
-                let lock = Lock()
-                var count = 0
+                let count = NIOAtomic.makeAtomic(value: 1)
 
                 results.forEach { future in
                     future.whenComplete { result in
                         switch result {
                         case .success:
-                            lock.withLockVoid { count += 1 }
-                            if count == 4 { promise.succeed(()) }
+                            _ = count.add(1)
+                            if count.load() == 4 { promise.succeed(()) }
                         case let .failure(error):
                             promise.fail(error)
                         }
