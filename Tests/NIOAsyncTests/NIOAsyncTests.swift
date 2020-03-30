@@ -1,6 +1,7 @@
 import NIO
 import XCTest
 import NIOAsync
+import NIOConcurrencyHelpers
 
 final class NIOAsyncTests: XCTestCase {
     var elg: EventLoopGroup!
@@ -27,21 +28,21 @@ final class NIOAsyncTests: XCTestCase {
 
         let sum = eventLoop.async { () -> Int in
             let two = try eventLoop.future(2, after: 2).await()
-            list.numbers.append(two)
+            list.append(two)
 
             let five = try eventLoop.future(5, after: 2).await()
-            list.numbers.append(five)
+            list.append(five)
 
             let six = try eventLoop.future(6, after: 2).await()
-            list.numbers.append(six)
+            list.append(six)
 
             return two + five + six
         }
 
-        list.numbers.append(1)
+        list.append(1)
         sleep(3)
-        list.numbers.append(3)
-        list.numbers.append(4)
+        list.append(3)
+        list.append(4)
 
         try XCTAssertEqual(sum.wait(), 13)
         XCTAssertEqual(list.numbers, [1, 2, 3, 4, 5, 6])
@@ -53,7 +54,7 @@ final class NIOAsyncTests: XCTestCase {
 
         let result = eventLoop.async {
             for number in (1...9).map({ eventLoop.makeSucceededFuture($0) }) {
-                try list.numbers.append(number.await())
+                try list.append(number.await())
             }
         }
 
@@ -136,14 +137,14 @@ final class NIOAsyncTests: XCTestCase {
 
             do {
                 let promise = self.elg.next().makePromise(of: Void.self)
-                var count = 0
+                let count = NIOAtomic.makeAtomic(value: 1)
 
                 results.forEach { future in
                     future.whenComplete { result in
                         switch result {
                         case .success:
-                            count += 1
-                            if count == 4 { promise.succeed(()) }
+                            _ = count.add(1)
+                            if count.load() == 4 { promise.succeed(()) }
                         case let .failure(error):
                             promise.fail(error)
                         }
@@ -161,12 +162,18 @@ final class NIOAsyncTests: XCTestCase {
 }
 
 final class NumberList {
-    var numbers: [Int] {
+    private let lock: Lock
+    private(set) var numbers: [Int] {
         didSet { print(self.numbers) }
     }
 
     init() {
+        self.lock = Lock()
         self.numbers = []
+    }
+
+    func append(_ number: Int) {
+        self.lock.withLockVoid { self.numbers.append(number) }
     }
 }
 
