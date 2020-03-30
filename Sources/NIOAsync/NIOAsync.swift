@@ -8,13 +8,11 @@ import struct SwiftCoroutine.Coroutine
 @inlinable public var inCoroutine: Bool { Coroutine.isInsideCoroutine }
 
 private struct EventLoopScheduler: CoroutineScheduler {
-    
     let eventLoop: EventLoop
     
     @inlinable func scheduleTask(_ task: @escaping () -> Void) {
         eventLoop.inEventLoop ? task() : eventLoop.execute(task)
     }
-    
 }
 
 extension EventLoop {
