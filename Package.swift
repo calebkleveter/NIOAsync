@@ -12,7 +12,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-nio.git", from: "2.0.0"),
-        .package(url: "https://github.com/belozierov/SwiftCoroutine.git", from: "1.0.5")
+        .package(url: "https://github.com/belozierov/SwiftCoroutine.git", from: "2.0.5")
     ],
     targets: [
         .target(name: "NIOAsync", dependencies: ["NIO", "SwiftCoroutine"]),
